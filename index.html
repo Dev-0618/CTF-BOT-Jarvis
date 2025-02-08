@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CTF Chatbot - Jarvis</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        body {
+            background-color: #0d0d0d;
+            color: #e0e0e0;
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            justify-content: center;
+        }
+        .chat-container {
+            width: 50%;
+            max-width: 600px;
+            height: 60vh;
+            border-radius: 10px;
+            overflow-y: auto;
+            padding: 15px;
+            background-color: #1a1a1a;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0px 0px 15px rgba(255, 255, 255, 0.1);
+        }
+        .message {
+            padding: 10px 15px;
+            margin: 5px;
+            border-radius: 10px;
+            max-width: 80%;
+            display: flex;
+            align-items: center;
+        }
+        .user {
+            align-self: flex-end;
+            background-color: #007bff;
+            color: white;
+        }
+        .bot {
+            align-self: flex-start;
+            background-color: #333;
+            color: white;
+        }
+        .input-container {
+            width: 50%;
+            display: flex;
+            margin-top: 10px;
+        }
+        input {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            background-color: #333;
+            color: white;
+            outline: none;
+        }
+        button {
+            padding: 10px;
+            border: none;
+            background-color: #007bff;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            font-size: 14px;
+            color: #ccc;
+        }
+    </style>
+</head>
+<body>
+    <h2>CTF Chatbot - Jarvis</h2>
+    <div class="chat-container" id="chat"></div>
+    <div class="loading" id="loading">Jarvis is typing...</div>
+    <div class="input-container">
+        <input type="text" id="userInput" placeholder="Type here..." onkeypress="handleKeyPress(event)">
+        <button onclick="sendMessage()">Send</button>
+    </div>
+
+    <script>
+        let hints = {}, tasks = [];
+
+        fetch('excel/hints.xlsx')
+            .then(res => res.arrayBuffer())
+            .then(data => {
+                let workbook = XLSX.read(data, { type: "array" });
+                let sheet = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+                sheet.forEach(row => hints[row.Clue] = row.Hint);
+            });
+        
+        fetch('excel/tasks.xlsx')
+            .then(res => res.arrayBuffer())
+            .then(data => {
+                let workbook = XLSX.read(data, { type: "array" });
+                tasks = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]).map(row => row.Task);
+            });
+
+        function sendMessage() {
+            let input = document.getElementById('userInput').value.trim();
+            if (!input) return;
+            addMessage("You: " + input, "user");
+            document.getElementById('userInput').value = "";
+            document.getElementById('loading').style.display = 'block';
+            
+            setTimeout(() => {
+                document.getElementById('loading').style.display = 'none';
+                processMessage(input);
+            }, 1000);
+        }
+        
+        function processMessage(input) {
+            if (input.toLowerCase() === "hi") {
+                addMessage("Jarvis: Hey! I'm your Jarvis to help in your CTF. Type 'start' to begin.", "bot");
+            } else if (input.toLowerCase() === "start") {
+                let randomTask = tasks[Math.floor(Math.random() * tasks.length)];
+                addMessage("Jarvis: Your task - " + randomTask, "bot");
+            } else if (hints[input]) {
+                addMessage("Jarvis: " + hints[input], "bot");
+            } else if (input.toLowerCase() === "clear") {
+                document.getElementById('chat').innerHTML = "";
+            } else {
+                addMessage("Jarvis: I don't understand that. Try asking for a hint.", "bot");
+            }
+        }
+        
+        function addMessage(message, sender) {
+            let chat = document.getElementById('chat');
+            let msgDiv = document.createElement('div');
+            msgDiv.textContent = message;
+            msgDiv.classList.add("message", sender);
+            chat.appendChild(msgDiv);
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+    </script>
+</body>
+</html>
